@@ -19,7 +19,7 @@ local script_vers_text = "1.00"
 local update_ini_url = "https://raw.githubusercontent.com/Zeka12394/autoUpdate/refs/heads/main/update.ini" 
 local update_ini_path = getWorkingDirectory() .. "/update.ini" 
 
-local script_url = "https://raw.githubusercontent.com/thechampguess/scripts/master/autoupdate_script.lua" 
+local script_url = "" 
 local script_path = thisScript().path 
 
 local update_available = false 
