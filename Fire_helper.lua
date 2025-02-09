@@ -38,12 +38,11 @@ function main()
 
     sampRegisterChatCommand("update", cmd_update) 
 
-    checkForUpdates() 
+    checkForUpdates() -- Сразу проверяем обновление при запуске
 
     while true do
         checkFireAlert()  
-        wait(600000)  
-        checkForUpdates() 
+        wait(1000) -- Проверка каждую секунду (для уведомлений о пожаре)
     end
 end
 
