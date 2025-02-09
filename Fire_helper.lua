@@ -13,8 +13,8 @@ encoding.default = "CP1251"
 local u8 = encoding.UTF8 
 
 --  Автообновление
-local script_vers = 1 
-local script_vers_text = "1.00" 
+local script_vers = 2 
+local script_vers_text = "1.09" 
 
 local update_ini_url = "https://raw.githubusercontent.com/Zeka12394/autoUpdate/refs/heads/main/update.ini" 
 local update_ini_path = getWorkingDirectory() .. "/update.ini" 
@@ -85,7 +85,7 @@ function cmd_update()
             sampAddChatMessage(" Ошибка загрузки обновления!", -1)
         end
     else
-        sampAddChatMessage(" У вас уже последняя версия.", -1)
+        sampAddChatMessage("У вас уже последняя версия. V2", -1)
     end
 end
 
