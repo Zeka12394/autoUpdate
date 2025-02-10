@@ -13,13 +13,13 @@ encoding.default = "CP1251"
 local u8 = encoding.UTF8 
 
 --  Автообновление
-local script_vers = 3 
-local script_vers_text = "1.10" 
+local script_vers = 2 
+local script_vers_text = "1.05" 
 
-local update_ini_url = "https://raw.githubusercontent.com/Zeka12394/autoUpdate/refs/heads/main/update.ini" 
+local update_ini_url = "https://raw.githubusercontent.com/thechampguess/scripts/master/update.ini" 
 local update_ini_path = getWorkingDirectory() .. "/update.ini" 
 
-local script_url = "https://raw.githubusercontent.com/Zeka12394/autoUpdate/refs/heads/main/Fire_helper.lua" 
+local script_url = "https://raw.githubusercontent.com/thechampguess/scripts/master/autoupdate_script.lua" 
 local script_path = thisScript().path 
 
 local update_available = false 
@@ -79,13 +79,15 @@ function cmd_update()
             if scriptFile then
                 scriptFile:write(response)
                 scriptFile:close()
-                sampAddChatMessage(" Обновление завершено! Перезапустите скрипт.", -1)
+                sampAddChatMessage(" Обновление завершено! Перезагрузка скрипта...", -1)
+                wait(1000)
+                thisScript():reload()  -- Перезапуск скрипта после обновления
             end
         else
             sampAddChatMessage(" Ошибка загрузки обновления!", -1)
         end
     else
-        sampAddChatMessage("У вас уже последняя версия. V3", -1)
+        sampAddChatMessage(" У вас уже последняя версия.", -1)
     end
 end
 
