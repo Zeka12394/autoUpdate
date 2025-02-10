@@ -58,19 +58,19 @@ function checkForUpdates()
 
         local ini = inicfg.load(nil, update_ini_path)
         if ini and ini.info and tonumber(ini.info.vers) > script_vers then
-            sampAddChatMessage(" Доступно обновление! Версия: " .. ini.info.vers, -1)
+            sampAddChatMessage("Доступно обновление! Версия: " .. ini.info.vers, -1)
             update_available = true
         end
         os.remove(update_ini_path)
     else
-        sampAddChatMessage(" Ошибка проверки обновлений!", -1)
+        sampAddChatMessage("Ошибка проверки обновлений!", -1)
     end
 end
 
 -- Команда обновления
 function cmd_update()
     if update_available then
-        sampAddChatMessage(" Скачивание новой версии...", -1)
+        sampAddChatMessage("Скачивание новой версии...", -1)
         
         local response, status = http.request(script_url)
         if status == 200 and response then
@@ -78,60 +78,66 @@ function cmd_update()
             if scriptFile then
                 scriptFile:write(response)
                 scriptFile:close()
-                sampAddChatMessage(" Обновление завершено! Перезапуск...", -1)
+                sampAddChatMessage("Обновление завершено! Перезапуск...", -1)
                 wait(1000)
                 script_reload() -- Перезапуск скрипта
             end
         else
-            sampAddChatMessage(" Ошибка загрузки обновления!", -1)
+            sampAddChatMessage("Ошибка загрузки обновления!", -1)
         end
     else
-        sampAddChatMessage(" У вас уже последняя версия: 3.00", -1)
+        sampAddChatMessage("У вас уже последняя версия.", -1)
     end
 end
 
--- Функция перезапуска скрипта
+-- Функция перезапуска скрипта с обратным отсчётом
 function script_reload()
     lua_thread.create(function()
         sampAddChatMessage(" Перезапуск скрипта через 3 секунды!", -1)
         wait(1000)
-        sampAddChatMessage("1...", -1)
+        sampAddChatMessage("3...", -1)
         wait(1000)
         sampAddChatMessage("2...", -1)
         wait(1000)
-        sampAddChatMessage("3...", -1)
+        sampAddChatMessage("1...", -1)
         wait(500)
-        thisScript():unload() -- Выгружаем скрипт
-        wait(500)
-        lua_thread.create(function() thisScript():reload() end) -- Загружаем снова
+        sampAddChatMessage(" Перезапуск...", -1)
+        thisScript():reload() -- Перезапуск скрипта
     end)
 end
 
--- Telegram-уведомления
 function sendTelegramNotification(msg)
     msg = msg:gsub('{......}', '') 
-    msg = u8:encode(msg, 'CP1251') 
-    async_http_request('https://api.telegram.org/bot' .. token .. '/sendMessage?chat_id=' .. chat_id .. '&text=' .. msg, '', function(_) end)
-end
+    msg = u8:encode(msg, 'CP1251')  
 
+    local url = string.format("https://api.telegram.org/bot%s/sendMessage?chat_id=%s&text=%s",
+                              token, chat_id, msg)
+    
+    lua_thread.create(function() -- Запускаем в отдельном потоке
+        local response, status = http.request(url)
+        if status ~= 200 then
+            sampAddChatMessage("Ошибка отправки уведомления в Telegram!", -1)
+        end
+    end)
+end
 function sampev.onServerMessage(color, text)
     local currentTime = os.time()
 
-    if color == 0x00FF00 and text:lower():find("степени") then  
+    local level = text:match("(%d)%-й степени")  -- Ищем число перед "-й степени"
+    if level and tonumber(level) and tonumber(level) >= 1 and tonumber(level) <= 3 then
         if currentTime - lastNotificationTime >= notificationCooldown then  
-            sendTelegramNotification(' ЗАХОДИ В ИГРУ! ПОЖАР НАЧАЛСЯ!')  
+            sendTelegramNotification(string.format("Пожар %d-й степени! Заходи в игру!", tonumber(level)))  
             lastNotificationTime = currentTime  
         end  
     end
 end
-
 function checkFireAlert()
     local currentTime = os.date("*t")
     local fireTimes = {5, 25, 45} 
 
     for _, fireMinute in ipairs(fireTimes) do  
         if currentTime.min == (fireMinute - 5) and not notificationSent[currentTime.hour .. ":" .. fireMinute] then  
-            sendTelegramNotification(string.format(" Через 5 минут пожар в %02d:%02d! Заходи в игру!", currentTime.hour, fireMinute))  
+            sendTelegramNotification(string.format("Через 5 минут пожар в %02d:%02d! Заходи в игру!", currentTime.hour, fireMinute))  
             notificationSent[currentTime.hour .. ":" .. fireMinute] = true  
         end  
     end
