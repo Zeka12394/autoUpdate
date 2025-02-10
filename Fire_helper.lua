@@ -12,8 +12,8 @@ encoding.default = "CP1251"
 local u8 = encoding.UTF8 
 
 -- Автообновление
-local script_vers = 3
-local script_vers_text = "1.10" 
+local script_vers = 2
+local script_vers_text = "1.05" 
 
 local update_ini_url = "https://raw.githubusercontent.com/Zeka12394/autoUpdate/refs/heads/main/update.ini" 
 local update_ini_path = getWorkingDirectory() .. "/update.ini" 
@@ -72,28 +72,30 @@ function cmd_update()
     if update_available then
         sampAddChatMessage("Скачивание новой версии...", -1)
         
-        local response, status = http.request(script_url)
-        if status == 200 and response then
-            local scriptFile = io.open(script_path, "w")
-            if scriptFile then
-                scriptFile:write(response)
-                scriptFile:close()
-                sampAddChatMessage("Обновление завершено! Перезапуск...", -1)
-                wait(1000)
-                script_reload() -- Перезапуск скрипта
+        lua_thread.create(function() -- Запускаем поток, чтобы избежать ошибки с `wait()`
+            local response, status = http.request(script_url)
+            if status == 200 and response then
+                local scriptFile = io.open(script_path, "w")
+                if scriptFile then
+                    scriptFile:write(response)
+                    scriptFile:close()
+                    sampAddChatMessage("Обновление завершено! Перезапуск...", -1)
+                    script_reload() -- Перезапуск скрипта
+                end
+            else
+                sampAddChatMessage("Ошибка загрузки обновления!", -1)
             end
-        else
-            sampAddChatMessage("Ошибка загрузки обновления!", -1)
-        end
+        end)
     else
         sampAddChatMessage("У вас уже последняя версия.", -1)
     end
 end
 
+
 -- Функция перезапуска скрипта с обратным отсчётом
 function script_reload()
     lua_thread.create(function()
-        sampAddChatMessage(" Перезапуск скрипта через 3 секунды!", -1)
+        sampAddChatMessage("Перезапуск скрипта через 3 секунды!", -1)
         wait(1000)
         sampAddChatMessage("3...", -1)
         wait(1000)
@@ -101,7 +103,7 @@ function script_reload()
         wait(1000)
         sampAddChatMessage("1...", -1)
         wait(500)
-        sampAddChatMessage(" Перезапуск...", -1)
+        sampAddChatMessage("Перезапуск...", -1)
         thisScript():reload() -- Перезапуск скрипта
     end)
 end
