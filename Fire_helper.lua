@@ -16,10 +16,10 @@ local u8 = encoding.UTF8
 local script_vers = 2 
 local script_vers_text = "1.05" 
 
-local update_ini_url = "https://raw.githubusercontent.com/thechampguess/scripts/master/update.ini" 
+local update_ini_url = "https://raw.githubusercontent.com/Zeka12394/autoUpdate/refs/heads/main/update.ini" 
 local update_ini_path = getWorkingDirectory() .. "/update.ini" 
 
-local script_url = "https://raw.githubusercontent.com/thechampguess/scripts/master/autoupdate_script.lua" 
+local script_url = "https://raw.githubusercontent.com/Zeka12394/autoUpdate/refs/heads/main/Fire_helper.lua" 
 local script_path = thisScript().path 
 
 local update_available = false 
