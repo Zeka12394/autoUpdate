@@ -1,20 +1,20 @@
 script_name("Fire Alert & AutoUpdate") 
 script_author("FORMYS") 
-script_description("ГЏГ®Г¦Г Г°Г­Г»Г© ГЎГ®ГІ + Г ГўГІГ®Г®ГЎГ­Г®ГўГ«ГҐГ­ГЁГҐ") 
+script_description("Пожарный бот + автообновление") 
 
 require "lib.moonloader" 
 
 local inicfg = require("inicfg") 
 local encoding = require("encoding") 
 local sampev = require("samp.events")
-local http = require("socket.http")  -- Г‡Г ГЈГ°ГіГ§ГЄГ  HTTP-ГЎГЁГЎГ«ГЁГ®ГІГҐГЄГЁ
+local http = require("socket.http")  -- Загрузка HTTP-библиотеки
 
 encoding.default = "CP1251"
 local u8 = encoding.UTF8 
 
---  ГЂГўГІГ®Г®ГЎГ­Г®ГўГ«ГҐГ­ГЁГҐ
+--  Автообновление
 local script_vers = 3 
-local script_vers_text = "1.010" 
+local script_vers_text = "1.10" 
 
 local update_ini_url = "https://raw.githubusercontent.com/Zeka12394/autoUpdate/refs/heads/main/update.ini" 
 local update_ini_path = getWorkingDirectory() .. "/update.ini" 
@@ -24,7 +24,7 @@ local script_path = thisScript().path
 
 local update_available = false 
 
---  Telegram-ГЎГ®ГІ
+--  Telegram-бот
 local chat_id = '-4622362493'  
 local token = '7799196233:AAGGLSxdMPc3kFg4Ryn4kGsDizyI79TvRss'  
 
@@ -38,15 +38,15 @@ function main()
 
     sampRegisterChatCommand("update", cmd_update) 
 
-    checkForUpdates() -- ГЏГ°Г®ГўГҐГ°ГЄГ  Г®ГЎГ­Г®ГўГ«ГҐГ­ГЁГ© ГЇГ°ГЁ Г§Г ГЇГіГ±ГЄГҐ
+    checkForUpdates() -- Проверка обновлений при запуске
 
     while true do
         checkFireAlert()  
-        wait(1000) -- ГЏГ°Г®ГўГҐГ°ГЄГ  ГЄГ Г¦Г¤ГіГѕ Г±ГҐГЄГіГ­Г¤Гі (Г¤Г«Гї ГіГўГҐГ¤Г®Г¬Г«ГҐГ­ГЁГ© Г® ГЇГ®Г¦Г Г°ГҐ)
+        wait(1000) -- Проверка каждую секунду (для уведомлений о пожаре)
     end
 end
 
---  ГЏГ°Г®ГўГҐГ°ГЄГ  Г®ГЎГ­Г®ГўГ«ГҐГ­ГЁГ© Г·ГҐГ°ГҐГ§ HTTP-Г§Г ГЇГ°Г®Г±
+--  Проверка обновлений через HTTP-запрос
 function checkForUpdates()
     local response, status = http.request(update_ini_url)
     
@@ -59,19 +59,19 @@ function checkForUpdates()
 
         local ini = inicfg.load(nil, update_ini_path)
         if ini and ini.info and tonumber(ini.info.vers) > script_vers then
-            sampAddChatMessage(" Г„Г®Г±ГІГіГЇГ­Г® Г®ГЎГ­Г®ГўГ«ГҐГ­ГЁГҐ! Г‚ГҐГ°Г±ГЁГї: " .. ini.info.vers, -1)
+            sampAddChatMessage(" Доступно обновление! Версия: " .. ini.info.vers, -1)
             update_available = true
         end
         os.remove(update_ini_path)
     else
-        sampAddChatMessage(" ГЋГёГЁГЎГЄГ  ГЇГ°Г®ГўГҐГ°ГЄГЁ Г®ГЎГ­Г®ГўГ«ГҐГ­ГЁГ©!", -1)
+        sampAddChatMessage(" Ошибка проверки обновлений!", -1)
     end
 end
 
---  ГЉГ®Г¬Г Г­Г¤Г  Г®ГЎГ­Г®ГўГ«ГҐГ­ГЁГї
+--  Команда обновления
 function cmd_update()
     if update_available then
-        sampAddChatMessage(" Г‘ГЄГ Г·ГЁГўГ Г­ГЁГҐ Г­Г®ГўГ®Г© ГўГҐГ°Г±ГЁГЁ...", -1)
+        sampAddChatMessage(" Скачивание новой версии...", -1)
         
         local response, status = http.request(script_url)
         if status == 200 and response then
@@ -79,17 +79,17 @@ function cmd_update()
             if scriptFile then
                 scriptFile:write(response)
                 scriptFile:close()
-                sampAddChatMessage(" ГЋГЎГ­Г®ГўГ«ГҐГ­ГЁГҐ Г§Г ГўГҐГ°ГёГҐГ­Г®! ГЏГҐГ°ГҐГ§Г ГЇГіГ±ГІГЁГІГҐ Г±ГЄГ°ГЁГЇГІ.", -1)
+                sampAddChatMessage(" Обновление завершено! Перезапустите скрипт.", -1)
             end
         else
-            sampAddChatMessage(" ГЋГёГЁГЎГЄГ  Г§Г ГЈГ°ГіГ§ГЄГЁ Г®ГЎГ­Г®ГўГ«ГҐГ­ГЁГї!", -1)
+            sampAddChatMessage(" Ошибка загрузки обновления!", -1)
         end
     else
-        sampAddChatMessage("Г“ ГўГ Г± ГіГ¦ГҐ ГЇГ®Г±Г«ГҐГ¤Г­ГїГї ГўГҐГ°Г±ГЁГї. V2", -1)
+        sampAddChatMessage("У вас уже последняя версия. V3", -1)
     end
 end
 
---  Telegram-ГіГўГҐГ¤Г®Г¬Г«ГҐГ­ГЁГї
+--  Telegram-уведомления
 function sendTelegramNotification(msg)
     msg = msg:gsub('{......}', '') 
     msg = u8:encode(msg, 'CP1251') 
@@ -99,9 +99,9 @@ end
 function sampev.onServerMessage(color, text)
     local currentTime = os.time()
 
-    if color == 0x00FF00 and text:lower():find("Г±ГІГҐГЇГҐГ­ГЁ") then  
+    if color == 0x00FF00 and text:lower():find("степени") then  
         if currentTime - lastNotificationTime >= notificationCooldown then  
-            sendTelegramNotification(' Г‡ГЂГ•ГЋГ„Г€ Г‚ Г€ГѓГђГ“! ГЏГЋГ†ГЂГђ ГЌГЂГ—ГЂГ‹Г‘Гџ!')  
+            sendTelegramNotification(' ЗАХОДИ В ИГРУ! ПОЖАР НАЧАЛСЯ!')  
             lastNotificationTime = currentTime  
         end  
     end
@@ -113,7 +113,7 @@ function checkFireAlert()
 
     for _, fireMinute in ipairs(fireTimes) do  
         if currentTime.min == (fireMinute - 5) and not notificationSent[currentTime.hour .. ":" .. fireMinute] then  
-            sendTelegramNotification(string.format(" Г—ГҐГ°ГҐГ§ 5 Г¬ГЁГ­ГіГІ ГЇГ®Г¦Г Г° Гў %02d:%02d! Г‡Г ГµГ®Г¤ГЁ Гў ГЁГЈГ°Гі!", currentTime.hour, fireMinute))  
+            sendTelegramNotification(string.format(" Через 5 минут пожар в %02d:%02d! Заходи в игру!", currentTime.hour, fireMinute))  
             notificationSent[currentTime.hour .. ":" .. fireMinute] = true  
         end  
     end
