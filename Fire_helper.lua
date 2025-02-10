@@ -3,18 +3,17 @@ script_author("FORMYS")
 script_description("Пожарный бот + автообновление") 
 
 require "lib.moonloader" 
-
 local inicfg = require("inicfg") 
 local encoding = require("encoding") 
 local sampev = require("samp.events")
-local http = require("socket.http")  -- Загрузка HTTP-библиотеки
+local http = require("socket.http")  
 
 encoding.default = "CP1251"
 local u8 = encoding.UTF8 
 
---  Автообновление
-local script_vers = 2 
-local script_vers_text = "1.05" 
+-- Автообновление
+local script_vers = 3
+local script_vers_text = "1.10" 
 
 local update_ini_url = "https://raw.githubusercontent.com/Zeka12394/autoUpdate/refs/heads/main/update.ini" 
 local update_ini_path = getWorkingDirectory() .. "/update.ini" 
@@ -24,7 +23,7 @@ local script_path = thisScript().path
 
 local update_available = false 
 
---  Telegram-бот
+-- Telegram-бот
 local chat_id = '-4622362493'  
 local token = '7799196233:AAGGLSxdMPc3kFg4Ryn4kGsDizyI79TvRss'  
 
@@ -42,11 +41,11 @@ function main()
 
     while true do
         checkFireAlert()  
-        wait(1000) -- Проверка каждую секунду (для уведомлений о пожаре)
+        wait(1000) 
     end
 end
 
---  Проверка обновлений через HTTP-запрос
+-- Проверка обновлений через HTTP-запрос
 function checkForUpdates()
     local response, status = http.request(update_ini_url)
     
@@ -68,7 +67,7 @@ function checkForUpdates()
     end
 end
 
---  Команда обновления
+-- Команда обновления
 function cmd_update()
     if update_available then
         sampAddChatMessage(" Скачивание новой версии...", -1)
@@ -79,19 +78,36 @@ function cmd_update()
             if scriptFile then
                 scriptFile:write(response)
                 scriptFile:close()
-                sampAddChatMessage(" Обновление завершено! Перезагрузка скрипта...", -1)
+                sampAddChatMessage(" Обновление завершено! Перезапуск...", -1)
                 wait(1000)
-                thisScript():reload()  -- Перезапуск скрипта после обновления
+                script_reload() -- Перезапуск скрипта
             end
         else
             sampAddChatMessage(" Ошибка загрузки обновления!", -1)
         end
     else
-        sampAddChatMessage(" У вас уже последняя версия.", -1)
+        sampAddChatMessage(" У вас уже последняя версия: 3.00", -1)
     end
 end
 
---  Telegram-уведомления
+-- Функция перезапуска скрипта
+function script_reload()
+    lua_thread.create(function()
+        sampAddChatMessage(" Перезапуск скрипта через 3 секунды!", -1)
+        wait(1000)
+        sampAddChatMessage("1...", -1)
+        wait(1000)
+        sampAddChatMessage("2...", -1)
+        wait(1000)
+        sampAddChatMessage("3...", -1)
+        wait(500)
+        thisScript():unload() -- Выгружаем скрипт
+        wait(500)
+        lua_thread.create(function() thisScript():reload() end) -- Загружаем снова
+    end)
+end
+
+-- Telegram-уведомления
 function sendTelegramNotification(msg)
     msg = msg:gsub('{......}', '') 
     msg = u8:encode(msg, 'CP1251') 
