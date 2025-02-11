@@ -1,54 +1,64 @@
-script_name("Fire Alert & AutoUpdate") 
-script_author("FORMYS") 
-script_description("Пожарный бот + автообновление") 
+script_name("Fire Alert & AutoUpdate")
+script_author("FORMYS")
+script_description("Пожарный бот + автообновление")
 
-require "lib.moonloader" 
-local inicfg = require("inicfg") 
-local encoding = require("encoding") 
+require "lib.moonloader"
+local inicfg = require("inicfg")
+local encoding = require("encoding")
 local sampev = require("samp.events")
-local http = require("socket.http")  
+local http = require("socket.http")
 
 encoding.default = "CP1251"
-local u8 = encoding.UTF8 
+local u8 = encoding.UTF8
 
 -- Автообновление
-local script_vers = 2
-local script_vers_text = "1.05" 
+local script_vers = 1
+local script_vers_text = "1.00"
 
-local update_ini_url = "https://raw.githubusercontent.com/Zeka12394/autoUpdate/refs/heads/main/update.ini" 
-local update_ini_path = getWorkingDirectory() .. "/update.ini" 
+local update_ini_url = "https://raw.githubusercontent.com/Zeka12394/autoUpdate/refs/heads/main/update.ini"
+local update_ini_path = getWorkingDirectory() .. "/update.ini"
 
-local script_url = "https://raw.githubusercontent.com/Zeka12394/autoUpdate/refs/heads/main/Fire_helper.lua" 
-local script_path = thisScript().path 
+local script_url = "https://raw.githubusercontent.com/Zeka12394/autoUpdate/refs/heads/main/Fire_helper.lua"
+local script_path = thisScript().path
 
-local update_available = false 
+local update_available = false
 
 -- Telegram-бот
-local chat_id = '-4622362493'  
-local token = '7799196233:AAGGLSxdMPc3kFg4Ryn4kGsDizyI79TvRss'  
+local chat_id = '-4622362493'
+local token = '7203823667:AAHBNeCxjQUEsZTWfB-e0eJ87D5imUu4ccE'
 
-local lastNotificationTime = 0 
-local notificationCooldown = 30  
-local notificationSent = {}  
+local lastNotificationTime = 0
+local notificationCooldown = 30
+local notificationSent = {}
 
 function main()
     if not isSampLoaded() or not isSampfuncsLoaded() then return end
     while not isSampAvailable() do wait(100) end
 
-    sampRegisterChatCommand("update", cmd_update) 
+    sampRegisterChatCommand("update", cmd_update)
 
     checkForUpdates() -- Проверка обновлений при запуске
 
     while true do
-        checkFireAlert()  
-        wait(1000) 
+        local currentTime = os.time()
+        local currentHour = tonumber(os.date("%H", currentTime))
+
+        -- Проверяем, что сейчас не позднее 22:00
+        if currentHour >= 10 and currentHour < 22 then
+            checkFireAlert() -- Проверка и отправка предупреждений
+        elseif currentHour == 22 and not notificationSent["end_of_day"] then
+            sendTelegramNotification("На сегодня пожары завершены. Всем спасибо за участие!")
+            notificationSent["end_of_day"] = true
+        end
+
+        wait(1000)
     end
 end
 
 -- Проверка обновлений через HTTP-запрос
 function checkForUpdates()
     local response, status = http.request(update_ini_url)
-    
+
     if status == 200 and response then
         local iniFile = io.open(update_ini_path, "w")
         if iniFile then
@@ -71,7 +81,7 @@ end
 function cmd_update()
     if update_available then
         sampAddChatMessage("Скачивание новой версии...", -1)
-        
+
         lua_thread.create(function() -- Запускаем поток, чтобы избежать ошибки с `wait()`
             local response, status = http.request(script_url)
             if status == 200 and response then
@@ -91,7 +101,6 @@ function cmd_update()
     end
 end
 
-
 -- Функция перезапуска скрипта с обратным отсчётом
 function script_reload()
     lua_thread.create(function()
@@ -108,39 +117,51 @@ function script_reload()
     end)
 end
 
+-- Уведомления Telegram с ограничением на частоту
 function sendTelegramNotification(msg)
-    msg = msg:gsub('{......}', '') 
-    msg = u8:encode(msg, 'CP1251')  
+    msg = msg:gsub('{......}', '') -- Очистка от лишних символов
+    msg = u8:encode(msg, 'CP1251')
 
     local url = string.format("https://api.telegram.org/bot%s/sendMessage?chat_id=%s&text=%s",
                               token, chat_id, msg)
-    
+
     lua_thread.create(function() -- Запускаем в отдельном потоке
         local response, status = http.request(url)
         if status ~= 200 then
             sampAddChatMessage("Ошибка отправки уведомления в Telegram!", -1)
+        else
+            -- Логируем последнее отправленное сообщение
+            lastNotificationTime = os.time()
         end
     end)
 end
+
+-- Фильтрация сообщений сервера после 22:00
 function sampev.onServerMessage(color, text)
     local currentTime = os.time()
+    local currentHour = tonumber(os.date("%H", currentTime))
 
-    local level = text:match("(%d)%-й степени")  -- Ищем число перед "-й степени"
-    if level and tonumber(level) and tonumber(level) >= 1 and tonumber(level) <= 3 then
-        if currentTime - lastNotificationTime >= notificationCooldown then  
-            sendTelegramNotification(string.format("Пожар %d-й степени! Заходи в игру!", tonumber(level)))  
-            lastNotificationTime = currentTime  
-        end  
+    if currentHour < 22 then
+        local level = text:match("(%d)%-й степени") -- Ищем число перед "-й степени"
+        if level and tonumber(level) and tonumber(level) >= 1 and tonumber(level) <= 3 then
+            if currentTime - lastNotificationTime >= notificationCooldown and not notificationSent["degree_" .. level] then
+                sendTelegramNotification(string.format("Пожар %d-й степени! Заходи в игру!", tonumber(level)))
+                lastNotificationTime = currentTime
+                notificationSent["degree_" .. level] = true
+            end
+        end
     end
 end
+
+-- Проверка времени для отправки предупреждений о пожаре
 function checkFireAlert()
     local currentTime = os.date("*t")
-    local fireTimes = {5, 25, 45} 
+    local fireTimes = {5, 25, 45} -- Моменты, когда начинаются пожары
 
-    for _, fireMinute in ipairs(fireTimes) do  
-        if currentTime.min == (fireMinute - 5) and not notificationSent[currentTime.hour .. ":" .. fireMinute] then  
-            sendTelegramNotification(string.format("Через 5 минут пожар в %02d:%02d! Заходи в игру!", currentTime.hour, fireMinute))  
-            notificationSent[currentTime.hour .. ":" .. fireMinute] = true  
-        end  
+    for _, fireMinute in ipairs(fireTimes) do
+        if currentTime.min == (fireMinute - 5) and not notificationSent[currentTime.hour .. ":" .. fireMinute] then
+            sendTelegramNotification(string.format("Через 5 минут пожар в %02d:%02d! Заходи в игру!", currentTime.hour, fireMinute))
+            notificationSent[currentTime.hour .. ":" .. fireMinute] = true
+        end
     end
 end
