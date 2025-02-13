@@ -1,5 +1,5 @@
-script_name("Fire Alert & AutoUpdate")
-script_author("FORMYS")
+script_name("Autoupdate + FD helper")
+script_author("tr: @zeka955")
 script_description("Пожарный бот + автообновление")
 
 require "lib.moonloader"
@@ -12,8 +12,8 @@ encoding.default = "CP1251"
 local u8 = encoding.UTF8
 
 -- Автообновление
-local script_vers = 1
-local script_vers_text = "1.00"
+local script_vers = 2
+local script_vers_text = "1.99"
 
 local update_ini_url = "https://raw.githubusercontent.com/Zeka12394/autoUpdate/refs/heads/main/update.ini"
 local update_ini_path = getWorkingDirectory() .. "/update.ini"
@@ -153,15 +153,37 @@ function sampev.onServerMessage(color, text)
     end
 end
 
+function getMoscowTime()
+    local utcTime = os.time(os.date("!*t")) -- Получаем UTC
+    return os.date("*t", utcTime + 3 * 3600) -- Добавляем 3 часа (МСК)
+end
+
 -- Проверка времени для отправки предупреждений о пожаре
 function checkFireAlert()
-    local currentTime = os.date("*t")
+    local currentTime = getMoscowTime()
     local fireTimes = {5, 25, 45} -- Моменты, когда начинаются пожары
 
     for _, fireMinute in ipairs(fireTimes) do
         if currentTime.min == (fireMinute - 5) and not notificationSent[currentTime.hour .. ":" .. fireMinute] then
-            sendTelegramNotification(string.format("Через 5 минут пожар в %02d:%02d! Заходи в игру!", currentTime.hour, fireMinute))
+            sendTelegramNotification(string.format("Через 5 минут пожар в %02d:%02d по МСК! Заходи в игру!", currentTime.hour, fireMinute))
             notificationSent[currentTime.hour .. ":" .. fireMinute] = true
+        end
+    end
+end
+
+-- Фильтрация сообщений сервера после 22:00 (по МСК)
+function sampev.onServerMessage(color, text)
+    local currentTime = getMoscowTime()
+    local currentHour = currentTime.hour
+
+    if currentHour < 22 then
+        local level = text:match("(%d)%-й степени")
+        if level and tonumber(level) and tonumber(level) >= 1 and tonumber(level) <= 3 then
+            if os.time() - lastNotificationTime >= notificationCooldown and not notificationSent["degree_" .. level] then
+                sendTelegramNotification(string.format("Пожар %d-й степени! Заходи в игру!", tonumber(level)))
+                lastNotificationTime = os.time()
+                notificationSent["degree_" .. level] = true
+            end
         end
     end
 end
