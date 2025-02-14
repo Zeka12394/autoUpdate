@@ -72,15 +72,15 @@ function cmd_fdstats()
     local lvl3 = stats.Stats.fires_lvl_3 or 0
 
     local message = string.format(
-        " Статистика пожаров за сегодня:\n\n" ..
-        " Всего пожаров: {FFFFFF}%d\n\n" ..
-        " 1-й степени: {33CC33}%d{FFFFFF}\n" ..  -- Зелёный, затем вернуть белый
-        " 2-й степени: {FFFF00}%d{FFFFFF}\n" ..  -- Жёлтый, затем вернуть белый
-        " 3-й степени: {FF3333}%d{FFFFFF}",      -- Красный, затем вернуть белый
+        "Статистика пожаров за сегодня:\n\n" ..
+        "Всего пожаров: {FFFFFF}%d\n\n" ..
+        "1-й степени: {33CC33}%d{FFFFFF}\n" ..  -- Зелёный, затем вернуть белый
+        "2-й степени: {FFFF00}%d{FFFFFF}\n" ..  -- Жёлтый, затем вернуть белый
+        "3-й степени: {FF3333}%d{FFFFFF}",      -- Красный, затем вернуть белый
         total, lvl1, lvl2, lvl3
     )
 
-    sampShowDialog(1, " Статистика Пожаров", message, "Закрыть", "", 0)
+    sampShowDialog(1, "Статистика Пожаров", message, "Закрыть", "", 0)
 end
 
 sampRegisterChatCommand("fdstats", cmd_fdstats)
